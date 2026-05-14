@@ -2,12 +2,10 @@
 
 from __future__ import annotations
 
-import math
-
 import mlx.core as mx
 import mlx.nn as nn
 
-from tabpfn_mlx.layers import RotaryEmbedding, MLP, RMSNorm
+from tabpfn_mlx.layers import RotaryEmbedding
 
 
 def scaled_dot_product_attention(

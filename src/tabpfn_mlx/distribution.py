@@ -2,12 +2,10 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
-
 import mlx.core as mx
 import mlx.nn as nn
 
-from tabpfn_mlx.attention import CrossAttention, SoftmaxScalingMLP, scaled_dot_product_attention
+from tabpfn_mlx.attention import CrossAttention, SoftmaxScalingMLP
 from tabpfn_mlx.layers import MLP, RMSNorm
 
 

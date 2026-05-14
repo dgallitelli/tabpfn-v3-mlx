@@ -7,7 +7,7 @@ import math
 import mlx.core as mx
 import mlx.nn as nn
 
-from tabpfn_mlx.attention import scaled_dot_product_attention, SoftmaxScalingMLP
+from tabpfn_mlx.attention import SoftmaxScalingMLP, scaled_dot_product_attention
 
 
 class ManyClassDecoder(nn.Module):

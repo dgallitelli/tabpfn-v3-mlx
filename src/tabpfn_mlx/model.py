@@ -4,23 +4,23 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-import numpy as np
 import mlx.core as mx
 import mlx.nn as nn
+import numpy as np
 
-from tabpfn_mlx.config import TabPFNV3Config
-from tabpfn_mlx.layers import RMSNorm, MLP, TrainableOrthogonalEmbedding
-from tabpfn_mlx.attention import SoftmaxScalingMLP
-from tabpfn_mlx.distribution import FeatureDistributionEmbedder
 from tabpfn_mlx.aggregation import ColumnAggregator
-from tabpfn_mlx.icl_transformer import ICLTransformerBlock
+from tabpfn_mlx.attention import SoftmaxScalingMLP
+from tabpfn_mlx.config import TabPFNV3Config
 from tabpfn_mlx.decoder import ManyClassDecoder
+from tabpfn_mlx.distribution import FeatureDistributionEmbedder
 from tabpfn_mlx.embedding import CellEmbedding, TargetEncoder
+from tabpfn_mlx.icl_transformer import ICLTransformerBlock
+from tabpfn_mlx.layers import RMSNorm
 from tabpfn_mlx.preprocessing import (
     StandardScaler,
     generate_nan_and_inf_indicator,
-    impute_nan_and_inf_with_mean,
     group_features,
+    impute_nan_and_inf_with_mean,
 )
 
 

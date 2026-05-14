@@ -1,9 +1,9 @@
 """Weight conversion from PyTorch checkpoints to MLX format."""
 
+from pathlib import Path
+
 import mlx.core as mx
 import mlx.nn as nn
-import numpy as np
-from pathlib import Path
 
 
 def convert_checkpoint(weights_path: str) -> dict[str, mx.array]:

@@ -1,5 +1,7 @@
 # TabPFN v3 MLX
 
+[![CI](https://github.com/dgallitelli/tabpfn-v3-mlx/actions/workflows/ci.yml/badge.svg)](https://github.com/dgallitelli/tabpfn-v3-mlx/actions/workflows/ci.yml)
+
 Native Apple MLX port of [TabPFN v3](https://github.com/PriorLabs/TabPFN) — the full 53M parameter tabular foundation model running natively on Apple Silicon.
 
 TabPFN v3 performs classification and regression via **in-context learning** — given training data and test features, it produces predictions in a single forward pass with no gradient descent.

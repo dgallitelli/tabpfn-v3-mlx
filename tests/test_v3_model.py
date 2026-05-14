@@ -1,12 +1,12 @@
 """Tests for the TabPFN v3 MLX model."""
 
-import numpy as np
 import mlx.core as mx
 import mlx.nn as nn
+import numpy as np
 import pytest
 
-from tabpfn_mlx.model import TabPFNV3, TabPFNV3Cache
 from tabpfn_mlx.config import TabPFNV3Config
+from tabpfn_mlx.model import TabPFNV3
 
 
 def _small_config(**kwargs):

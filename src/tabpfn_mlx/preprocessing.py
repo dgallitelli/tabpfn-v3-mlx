@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import mlx.core as mx
 
-
 _NAN_INDICATOR = -2.0
 _INFINITY_INDICATOR = 2.0
 _NEG_INFINITY_INDICATOR = 4.0
