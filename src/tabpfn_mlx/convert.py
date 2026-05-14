@@ -72,56 +72,88 @@ def load_pytorch_weights(model: nn.Module, weights_path: str) -> nn.Module:
     return model
 
 
-def convert_v3_checkpoint(weights_path: str) -> dict[str, mx.array]:
+def convert_v3_checkpoint(weights_path: str) -> tuple[dict[str, mx.array], dict]:
     """Convert a TabPFN v3 PyTorch checkpoint to MLX weight dict.
 
-    The v3 architecture uses separate Q/K/V projections (no in_proj fusion),
-    so the key remapping is primarily about naming conventions.
+    Handles .ckpt (PyTorch Lightning), .pt, and .safetensors formats.
+    Extracts the state_dict and config from .ckpt files.
 
     Args:
-        weights_path: Path to .pt or .safetensors checkpoint
+        weights_path: Path to checkpoint file
 
     Returns:
-        Dictionary mapping MLX parameter names to arrays
+        Tuple of (mlx_weights dict, config dict from checkpoint)
     """
     path = Path(weights_path)
 
+    config = {}
+
     if path.suffix == ".safetensors":
         raw_weights = mx.load(str(path))
-    elif path.suffix in (".pt", ".pth", ".bin"):
+    elif path.suffix in (".pt", ".pth", ".bin", ".ckpt"):
         import torch
-        state_dict = torch.load(str(path), map_location="cpu", weights_only=True)
+        ckpt = torch.load(str(path), map_location="cpu", weights_only=False)
+        if isinstance(ckpt, dict) and "state_dict" in ckpt:
+            config = ckpt.get("config", {})
+            state_dict = ckpt["state_dict"]
+        else:
+            state_dict = ckpt
         raw_weights = {k: mx.array(v.numpy()) for k, v in state_dict.items()}
     else:
         raise ValueError(f"Unsupported weight format: {path.suffix}")
 
-    return _remap_v3_keys(raw_weights)
+    return _remap_v3_keys(raw_weights), config
 
 
 def _remap_v3_keys(weights: dict[str, mx.array]) -> dict[str, mx.array]:
     """Remap TabPFN v3 PyTorch state_dict keys to MLX naming.
 
-    Key differences:
-    - PyTorch nn.ModuleList uses .N. indexing → MLX uses .layers.N.
-    - PyTorch nn.Sequential uses .N. → MLX uses .layers.N.
-    - RMSNorm weight → weight (same name, no remap needed)
-    - nn.Parameter stored directly → needs flattened path
+    Transformations:
+    - x_embed.weight/bias → x_embed.linear.weight/bias
+    - col_y_encoder.embedding → col_y_encoder.encoder.embedding
+    - icl_y_encoder.embedding → icl_y_encoder.encoder.embedding
+    - rope.freqs → rope.inv_freq
+    - .mlp.0. → .mlp.linear1., .mlp.2. → .mlp.linear2.
+    - .base_mlp.0. → .base_linear1., .base_mlp.2. → .base_linear2.
+    - .query_mlp.0. → .query_linear1., .query_mlp.2. → .query_linear2.
+    - regression_borders is dropped (buffer, not a model parameter)
     """
     mlx_weights = {}
 
     for key, tensor in weights.items():
-        mlx_key = key
-        # ModuleList indexing is preserved in MLX
-        # nn.Sequential layers use .layers.N. in MLX but .N. in PyTorch
-        # Handle the output_projection Sequential
-        if "output_projection." in key:
-            # PyTorch: output_projection.0.weight → output_projection.layers.0.weight
-            parts = key.split("output_projection.")
-            rest = parts[1]
-            if rest[0].isdigit():
-                mlx_key = f"{parts[0]}output_projection.layers.{rest}"
+        if key == "regression_borders":
+            continue
 
-        mlx_weights[mlx_key] = tensor
+        k = key
+
+        if k.startswith("x_embed.") and "linear" not in k:
+            k = k.replace("x_embed.", "x_embed.linear.")
+
+        if k.startswith("col_y_encoder.embedding."):
+            k = k.replace("col_y_encoder.embedding.", "col_y_encoder.encoder.embedding.")
+
+        if k.startswith("icl_y_encoder.embedding."):
+            k = k.replace("icl_y_encoder.embedding.", "icl_y_encoder.encoder.embedding.")
+
+        if "rope.freqs" in k:
+            k = k.replace("rope.freqs", "rope.inv_freq")
+
+        if ".mlp.0." in k:
+            k = k.replace(".mlp.0.", ".mlp.linear1.")
+        if ".mlp.2." in k:
+            k = k.replace(".mlp.2.", ".mlp.linear2.")
+
+        if ".base_mlp.0." in k:
+            k = k.replace(".base_mlp.0.", ".base_linear1.")
+        if ".base_mlp.2." in k:
+            k = k.replace(".base_mlp.2.", ".base_linear2.")
+
+        if ".query_mlp.0." in k:
+            k = k.replace(".query_mlp.0.", ".query_linear1.")
+        if ".query_mlp.2." in k:
+            k = k.replace(".query_mlp.2.", ".query_linear2.")
+
+        mlx_weights[k] = tensor
 
     return mlx_weights
 
@@ -136,7 +168,36 @@ def load_v3_pytorch_weights(model: nn.Module, weights_path: str) -> nn.Module:
     Returns:
         Model with loaded weights
     """
-    mlx_weights = convert_v3_checkpoint(weights_path)
+    mlx_weights, _ = convert_v3_checkpoint(weights_path)
+    model.load_weights(list(mlx_weights.items()))
+    return model
+
+
+def load_v3_from_checkpoint(weights_path: str, task_type: str = "multiclass"):
+    """Create and load a TabPFNV3 model directly from a checkpoint.
+
+    Reads config from the checkpoint and creates the model with correct settings.
+
+    Args:
+        weights_path: Path to .ckpt checkpoint
+        task_type: "multiclass" or "regression"
+
+    Returns:
+        Loaded TabPFNV3 model ready for inference
+    """
+    from tabpfn_mlx.config import TabPFNV3Config
+    from tabpfn_mlx.model import TabPFNV3
+
+    mlx_weights, ckpt_config = convert_v3_checkpoint(weights_path)
+
+    config_kwargs = {}
+    config_fields = {f.name for f in TabPFNV3Config.__dataclass_fields__.values()}
+    for k, v in ckpt_config.items():
+        if k in config_fields:
+            config_kwargs[k] = v
+
+    config = TabPFNV3Config(**config_kwargs)
+    model = TabPFNV3(config, task_type=task_type)
     model.load_weights(list(mlx_weights.items()))
     return model
 
@@ -148,5 +209,5 @@ def save_mlx_weights(model: nn.Module, output_path: str) -> None:
         model: Model with weights to save
         output_path: Output .safetensors file path
     """
-    weights = dict(mx.utils.tree_flatten(model.parameters()))
+    weights = dict(nn.utils.tree_flatten(model.parameters()))
     mx.save_safetensors(output_path, weights)
