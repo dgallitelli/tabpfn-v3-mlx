@@ -8,10 +8,14 @@ build/
 
 *.pt
 *.pth
+*.ckpt
+*.bin
 *.safetensors
 *.h5
 *.npz
 *.npy
+weights/
+checkpoints/
 
 .venv/
 venv/
