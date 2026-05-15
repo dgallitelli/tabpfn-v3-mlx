@@ -192,7 +192,12 @@ def load_v3_pytorch_weights(model: nn.Module, weights_path: str) -> nn.Module:
     return model
 
 
-def load_v3_from_checkpoint(weights_path: str, task_type: str = "multiclass"):
+def load_v3_from_checkpoint(
+    weights_path: str,
+    task_type: str = "multiclass",
+    dtype: "mx.Dtype | None" = None,
+    compile: bool = False,
+):
     """Create and load a TabPFNV3 model directly from a checkpoint.
 
     Reads config from the checkpoint and creates the model with correct settings.
@@ -200,6 +205,8 @@ def load_v3_from_checkpoint(weights_path: str, task_type: str = "multiclass"):
     Args:
         weights_path: Path to .ckpt checkpoint
         task_type: "multiclass" or "regression"
+        dtype: Optional dtype override (e.g. mx.float16 for half-precision)
+        compile: If True, compile ICL blocks for faster inference
 
     Returns:
         Loaded TabPFNV3 model ready for inference
@@ -226,6 +233,12 @@ def load_v3_from_checkpoint(weights_path: str, task_type: str = "multiclass"):
 
     if regression_borders is not None:
         model.regression_borders = regression_borders
+
+    if dtype is not None:
+        model.to_dtype(dtype)
+
+    if compile:
+        model.compile()
 
     return model
 

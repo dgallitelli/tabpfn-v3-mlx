@@ -351,11 +351,35 @@ class TabPFNV3(nn.Module):
             return y[:num_train][None, :]  # (1, N)
         return y[:num_train].transpose(1, 0)  # (B, N)
 
+    def compile(self) -> "TabPFNV3":
+        """Compile ICL transformer blocks for faster repeated inference.
+
+        Uses mx.compile() for kernel fusion on the hot path (24 ICL layers).
+        Returns self for chaining.
+        """
+        for block in self.icl_blocks:
+            block.__call__ = mx.compile(block.__call__)
+        return self
+
+    def to_dtype(self, dtype: mx.Dtype = mx.float16) -> "TabPFNV3":
+        """Convert model weights to a different precision.
+
+        Args:
+            dtype: Target dtype (mx.float16 for half, mx.bfloat16, etc.)
+
+        Returns self for chaining.
+        """
+        params = nn.utils.tree_map(lambda x: x.astype(dtype), self.parameters())
+        self.update(params)
+        return self
+
     def predict_proba(
         self,
         X_train: np.ndarray,
         y_train: np.ndarray,
         X_test: np.ndarray,
+        *,
+        inference_chunk_size: int | None = None,
     ) -> np.ndarray:
         """Predict class probabilities.
 
@@ -363,25 +387,63 @@ class TabPFNV3(nn.Module):
             X_train: (N, C) training features.
             y_train: (N,) training labels.
             X_test: (M, C) test features.
+            inference_chunk_size: If set, process test rows in chunks of this
+                size using KV caching. Reduces peak memory for large test sets.
 
         Returns:
             (M, n_classes) probability array.
         """
+        if inference_chunk_size is not None and X_test.shape[0] > inference_chunk_size:
+            return self._chunked_predict_proba(
+                X_train, y_train, X_test, inference_chunk_size
+            )
+
         x_combined = np.concatenate([X_train, X_test], axis=0)  # (R, C)
-        # Convert to (R, 1, C) — rows-first, batch=1
         x_tensor = mx.array(x_combined[:, None, :].astype(np.float32))
         y_tensor = mx.array(y_train.astype(np.float32))
 
         logits = self(x_tensor, y_tensor)  # (M, 1, T)
         mx.eval(logits)
 
-        # Convert logits to probabilities
         probs = mx.softmax(logits, axis=-1)
         mx.eval(probs)
 
-        # Shape: (M, 1, T) → (M, T)
         result = np.array(probs[:, 0, :])
         return result
+
+    def _chunked_predict_proba(
+        self,
+        X_train: np.ndarray,
+        y_train: np.ndarray,
+        X_test: np.ndarray,
+        chunk_size: int,
+    ) -> np.ndarray:
+        """Process test rows in chunks using KV cache for memory efficiency."""
+        x_combined = np.concatenate([X_train, X_test], axis=0)
+        x_tensor = mx.array(x_combined[:, None, :].astype(np.float32))
+        y_tensor = mx.array(y_train.astype(np.float32))
+
+        # First pass: build KV cache from all data
+        logits_first, cache = self(x_tensor, y_tensor, return_kv_cache=True)
+        mx.eval(logits_first)
+
+        # Process test rows in chunks using the cache
+        M = X_test.shape[0]
+        all_probs = []
+        for start in range(0, M, chunk_size):
+            end = min(start + chunk_size, M)
+            x_chunk = mx.array(X_test[start:end, None, :].astype(np.float32))
+            # (chunk, 1, C) → rows-first convention
+            x_chunk_rows = x_chunk.transpose(0, 1, 2)  # already (rows, B=1, C)
+
+            logits_chunk = self(x_chunk_rows, y_tensor, kv_cache=cache, x_is_test_only=True)
+            mx.eval(logits_chunk)
+
+            probs_chunk = mx.softmax(logits_chunk, axis=-1)
+            mx.eval(probs_chunk)
+            all_probs.append(np.array(probs_chunk[:, 0, :]))
+
+        return np.concatenate(all_probs, axis=0)
 
     def predict(
         self,
@@ -401,6 +463,8 @@ class TabPFNV3(nn.Module):
         y_train: np.ndarray,
         X_test: np.ndarray,
         borders: np.ndarray | None = None,
+        *,
+        inference_chunk_size: int | None = None,
     ) -> np.ndarray:
         """Predict continuous values via bar distribution decoding.
 
@@ -410,6 +474,8 @@ class TabPFNV3(nn.Module):
             X_test: (M, C) test features.
             borders: (n_buckets+1,) bin boundaries in z-normalized space.
                      If None, uses uniform [-128, 128] with 5000 bins.
+            inference_chunk_size: If set, process test rows in chunks using
+                KV caching for reduced peak memory.
 
         Returns:
             (M,) predicted values in original scale.
@@ -423,12 +489,28 @@ class TabPFNV3(nn.Module):
         y_normalized = (y_train - y_mean) / y_std
         y_tensor = mx.array(y_normalized.astype(np.float32))
 
-        logits = self(x_tensor, y_tensor)  # (M, 1, n_buckets)
-        mx.eval(logits)
+        if inference_chunk_size is not None and X_test.shape[0] > inference_chunk_size:
+            # Build cache once, then chunk test rows
+            logits_first, cache = self(x_tensor, y_tensor, return_kv_cache=True)
+            mx.eval(logits_first)
 
-        probs = mx.softmax(logits[:, 0, :], axis=-1)
-        mx.eval(probs)
-        probs_np = np.array(probs)
+            M = X_test.shape[0]
+            all_probs = []
+            for start in range(0, M, inference_chunk_size):
+                end = min(start + inference_chunk_size, M)
+                x_chunk = mx.array(X_test[start:end, None, :].astype(np.float32))
+                logits_chunk = self(x_chunk, y_tensor, kv_cache=cache, x_is_test_only=True)
+                mx.eval(logits_chunk)
+                probs_chunk = mx.softmax(logits_chunk[:, 0, :], axis=-1)
+                mx.eval(probs_chunk)
+                all_probs.append(np.array(probs_chunk))
+            probs_np = np.concatenate(all_probs, axis=0)
+        else:
+            logits = self(x_tensor, y_tensor)  # (M, 1, n_buckets)
+            mx.eval(logits)
+            probs = mx.softmax(logits[:, 0, :], axis=-1)
+            mx.eval(probs)
+            probs_np = np.array(probs)
 
         # Build z-space bin boundaries and midpoints
         if borders is None:
