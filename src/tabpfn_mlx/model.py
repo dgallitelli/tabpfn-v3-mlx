@@ -389,6 +389,58 @@ class TabPFNV3(nn.Module):
         y_train: np.ndarray,
         X_test: np.ndarray,
     ) -> np.ndarray:
-        """Predict class labels."""
+        """Predict class labels (classification) or values (regression)."""
+        if self.task_type == "regression":
+            return self.predict_regression(X_train, y_train, X_test)
         probs = self.predict_proba(X_train, y_train, X_test)
         return probs.argmax(axis=1)
+
+    def predict_regression(
+        self,
+        X_train: np.ndarray,
+        y_train: np.ndarray,
+        X_test: np.ndarray,
+        borders: np.ndarray | None = None,
+    ) -> np.ndarray:
+        """Predict continuous values via bar distribution decoding.
+
+        Args:
+            X_train: (N, C) training features.
+            y_train: (N,) training targets (continuous).
+            X_test: (M, C) test features.
+            borders: (n_buckets+1,) bin boundaries in z-normalized space.
+                     If None, uses uniform [-128, 128] with 5000 bins.
+
+        Returns:
+            (M,) predicted values in original scale.
+        """
+        x_combined = np.concatenate([X_train, X_test], axis=0)
+        x_tensor = mx.array(x_combined[:, None, :].astype(np.float32))
+
+        # Z-normalize targets (matching official TabPFN preprocessing)
+        y_mean = float(y_train.mean())
+        y_std = float(y_train.std()) + 1e-8
+        y_normalized = (y_train - y_mean) / y_std
+        y_tensor = mx.array(y_normalized.astype(np.float32))
+
+        logits = self(x_tensor, y_tensor)  # (M, 1, n_buckets)
+        mx.eval(logits)
+
+        probs = mx.softmax(logits[:, 0, :], axis=-1)
+        mx.eval(probs)
+        probs_np = np.array(probs)
+
+        # Build z-space bin boundaries and midpoints
+        if borders is None:
+            borders = getattr(self, "regression_borders", None)
+        if borders is None:
+            n_buckets = probs_np.shape[1]
+            borders = np.linspace(-128.0, 128.0, n_buckets + 1).astype(np.float32)
+        midpoints = (borders[:-1] + borders[1:]) / 2.0
+
+        # Expected value in z-normalized space
+        predictions_znorm = (probs_np * midpoints[None, :]).sum(axis=1)
+
+        # Map back to raw space: raw = znorm * std + mean
+        predictions = predictions_znorm * y_std + y_mean
+        return predictions

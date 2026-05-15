@@ -71,7 +71,14 @@ Benchmarked on Apple M4 (16 GB), MLX 0.31.2, PyTorch 2.12.0. Median of 10 runs.
 Prediction agreement with official PyTorch: 98–99% (median probability diff < 0.0001).
 Disagreements occur only on borderline samples at decision boundaries.
 
-See the [HuggingFace model card](https://huggingface.co/dgallitelli/tabpfn-v3-mlx) for full scaling analysis.
+**Time-Series Regression** (lagged-feature encoding, bar distribution decoding):
+
+| Dataset | Train/Test | MLX | R² | Speedup vs CPU |
+|---------|-----------|-----|-----|----------------|
+| Sine wave + noise | 150/45 | **21 ms** | 0.825 | 23.9x |
+| Multi-frequency signal | 700/285 | **135 ms** | 0.959 | — |
+
+See the [HuggingFace model card](https://huggingface.co/dgallitelli/tabpfn-v3-mlx) and [docs/benchmarks.md](docs/benchmarks.md) for full scaling analysis.
 
 ## Installation
 
@@ -101,6 +108,15 @@ model = TabPFNV3(config, task_type="multiclass")
 # Predict
 probs = model.predict_proba(X_train, y_train, X_test)
 preds = model.predict(X_train, y_train, X_test)
+```
+
+### Regression / Time-Series
+
+```python
+from tabpfn_mlx import load_v3_from_checkpoint
+
+model = load_v3_from_checkpoint("path/to/regressor.ckpt", task_type="regression")
+predictions = model.predict(X_train, y_train, X_test)
 ```
 
 ## Configuration

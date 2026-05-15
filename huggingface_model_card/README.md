@@ -4,6 +4,8 @@ tags:
   - tabpfn
   - tabular
   - classification
+  - regression
+  - time-series
   - in-context-learning
   - apple-silicon
   - mlx
@@ -74,6 +76,20 @@ Tested on Apple M4 (16 GB unified memory), MLX 0.31.2, PyTorch 2.12.0, macOS 26.
 > When comparing single-estimator to single-estimator, prediction agreement is 98.9% with median probability difference < 0.0001.
 > The ~1-7% disagreements occur on borderline samples near decision boundaries.
 
+### Time-Series Regression
+
+Using the `tabpfn-v3-regressor-v3_20260506_timeseries.ckpt` checkpoint with lagged-feature encoding.
+Targets are z-normalized internally; predictions decoded via 5000-bin bar distribution.
+
+| Dataset | Train/Test | Lags | MLX Latency | R² |
+|---------|-----------|------|-------------|-----|
+| Sine wave + noise | 150/45 | 5 | **21 ms** | 0.825 |
+| Damped oscillation | 350/140 | 10 | **56 ms** | 0.884 |
+| Multi-frequency signal | 700/285 | 15 | **135 ms** | 0.959 |
+| Random walk + trend | 350/140 | 10 | **56 ms** | 0.881 |
+
+**Speedup vs PyTorch CPU (sine wave):** 23.9x (21 ms vs 512 ms)
+
 See [docs/benchmarks.md](https://github.com/dgallitelli/tabpfn-v3-mlx/blob/main/docs/benchmarks.md) for full methodology.
 
 ## Installation
@@ -92,12 +108,15 @@ pip install "tabpfn-v3-mlx[convert]"
 ```python
 from tabpfn_mlx import load_v3_from_checkpoint
 
-# Load from official Prior-Labs checkpoint
+# Classification
 model = load_v3_from_checkpoint("path/to/tabpfn-v3-classifier-v3_default.ckpt")
-
-# Predict (sklearn-compatible API)
 probs = model.predict_proba(X_train, y_train, X_test)
 preds = model.predict(X_train, y_train, X_test)
+
+# Regression / Time-Series
+model = load_v3_from_checkpoint("path/to/tabpfn-v3-regressor-v3_20260506_timeseries.ckpt",
+                                task_type="regression")
+predictions = model.predict(X_train, y_train, X_test)
 ```
 
 ### Downloading weights
@@ -119,7 +138,7 @@ The full v3 pipeline ported to MLX:
 4. **Distribution embedding**: 3x InducedSelfAttention blocks (O(n) via learnable inducing points)
 5. **Column aggregation**: 3x TransformerBlocks with RoPE + CLS token readout → (B, R, 4, 128)
 6. **ICL transformer**: 24 layers with pre-norm RMSNorm, train-only K/V, GQA, SoftmaxScalingMLP
-7. **Decoder**: Attention retrieval with one-hot values for multiclass
+7. **Decoder**: Attention retrieval with one-hot values for multiclass; MLP + bar distribution for regression
 
 ## KV Cache
 

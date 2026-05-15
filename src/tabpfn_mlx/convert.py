@@ -102,7 +102,17 @@ def convert_v3_checkpoint(weights_path: str) -> tuple[dict[str, mx.array], dict]
     else:
         raise ValueError(f"Unsupported weight format: {path.suffix}")
 
-    return _remap_v3_keys(raw_weights), config
+    # Extract regression_borders before remapping (it gets skipped there)
+    regression_borders = None
+    if "regression_borders" in raw_weights:
+        import numpy as np
+        regression_borders = np.array(raw_weights["regression_borders"])
+
+    remapped = _remap_v3_keys(raw_weights)
+    if regression_borders is not None:
+        remapped["_regression_borders"] = regression_borders
+
+    return remapped, config
 
 
 def _remap_v3_keys(weights: dict[str, mx.array]) -> dict[str, mx.array]:
@@ -131,9 +141,13 @@ def _remap_v3_keys(weights: dict[str, mx.array]) -> dict[str, mx.array]:
 
         if k.startswith("col_y_encoder.embedding."):
             k = k.replace("col_y_encoder.embedding.", "col_y_encoder.encoder.embedding.")
+        elif k.startswith("col_y_encoder.") and ".encoder." not in k:
+            k = k.replace("col_y_encoder.", "col_y_encoder.encoder.")
 
         if k.startswith("icl_y_encoder.embedding."):
             k = k.replace("icl_y_encoder.embedding.", "icl_y_encoder.encoder.embedding.")
+        elif k.startswith("icl_y_encoder.") and ".encoder." not in k:
+            k = k.replace("icl_y_encoder.", "icl_y_encoder.encoder.")
 
         if "rope.freqs" in k:
             k = k.replace("rope.freqs", "rope.inv_freq")
@@ -152,6 +166,11 @@ def _remap_v3_keys(weights: dict[str, mx.array]) -> dict[str, mx.array]:
             k = k.replace(".query_mlp.0.", ".query_linear1.")
         if ".query_mlp.2." in k:
             k = k.replace(".query_mlp.2.", ".query_linear2.")
+
+        if k.startswith("output_projection.0."):
+            k = k.replace("output_projection.0.", "output_projection_linear1.")
+        if k.startswith("output_projection.2."):
+            k = k.replace("output_projection.2.", "output_projection_linear2.")
 
         mlx_weights[k] = tensor
 
@@ -185,10 +204,17 @@ def load_v3_from_checkpoint(weights_path: str, task_type: str = "multiclass"):
     Returns:
         Loaded TabPFNV3 model ready for inference
     """
+    import numpy as np
+
     from tabpfn_mlx.config import TabPFNV3Config
     from tabpfn_mlx.model import TabPFNV3
 
     mlx_weights, ckpt_config = convert_v3_checkpoint(weights_path)
+
+    # Extract regression_borders (stored with underscore prefix to avoid load_weights)
+    regression_borders = None
+    if "_regression_borders" in mlx_weights:
+        regression_borders = mlx_weights.pop("_regression_borders")
 
     config_kwargs = {}
     config_fields = {f.name for f in TabPFNV3Config.__dataclass_fields__.values()}
@@ -199,6 +225,10 @@ def load_v3_from_checkpoint(weights_path: str, task_type: str = "multiclass"):
     config = TabPFNV3Config(**config_kwargs)
     model = TabPFNV3(config, task_type=task_type)
     model.load_weights(list(mlx_weights.items()))
+
+    if regression_borders is not None:
+        model.regression_borders = regression_borders
+
     return model
 
 

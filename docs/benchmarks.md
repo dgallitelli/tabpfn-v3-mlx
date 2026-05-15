@@ -84,10 +84,28 @@ MLX uses Apple's unified memory architecture — the model and data share the sa
 | PyTorch CPU | ~9.1 s | OK (slow) |
 | PyTorch MPS | — | **OOM** (>8.3 GB limit) |
 
+## Time-Series Regression
+
+Using the `tabpfn-v3-regressor-v3_20260506_timeseries.ckpt` checkpoint with lagged-feature encoding.
+Targets are z-normalized internally; predictions decoded via 5000-bin bar distribution.
+
+| Dataset | Train/Test | Lags | MLX Latency | R² | MSE |
+|---------|-----------|------|-------------|-----|-----|
+| Sine wave + noise | 150/45 | 5 | **21 ms** | 0.825 | 0.014 |
+| Damped oscillation | 350/140 | 10 | **56 ms** | 0.884 | 0.004 |
+| Multi-frequency signal | 700/285 | 15 | **135 ms** | 0.959 | 0.028 |
+| Random walk + trend | 350/140 | 10 | **56 ms** | 0.881 | 0.014 |
+
+### Comparison with Official PyTorch (Sine wave)
+
+| Backend | R² | Latency | Speedup |
+|---------|-----|---------|---------|
+| MLX | 0.825 | **21 ms** | 23.9x |
+| PyTorch CPU | 0.827 | 512 ms | 1.0x |
+
 ## Task Types Not Yet Supported
 
-- **Regression**: The regression checkpoint (`tabpfn-v3-regressor-v3_default.ckpt`) uses a separate decoder architecture (2-layer MLP to 5000 bar-distribution buckets) not yet implemented in the MLX port.
-- **Time-series / Anomaly Detection**: No dedicated checkpoints exist in the Prior-Labs model repository. TabPFN v3 is a classification and regression model only.
+- **Anomaly Detection**: No dedicated checkpoints exist in the Prior-Labs model repository.
 
 ## Reproducing Benchmarks
 
