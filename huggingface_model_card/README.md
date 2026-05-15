@@ -30,9 +30,51 @@ This is an **inference-only MLX reimplementation** of the TabPFN v3 architecture
 |--------|-------|
 | Parameters | 53.2M |
 | Architecture layers | 24 ICL + 3 distribution + 3 aggregation |
-| Speedup vs PyTorch CPU | 4.1x on Apple Silicon |
-| Prediction agreement | 100% vs official PyTorch |
-| Max numerical diff | < 0.08 probability (float32 cross-platform) |
+| Speedup vs PyTorch CPU | 13–29x on Apple Silicon |
+| Speedup vs PyTorch MPS | 30–39x (MPS OOMs at ~1000 samples) |
+| Prediction agreement | 93–99% vs official PyTorch |
+| Median numerical diff | < 0.0001 probability |
+
+### Benchmark Results
+
+Tested on Apple M4 (16 GB unified memory), MLX 0.31.2, PyTorch 2.12.0, macOS 26.3.1.
+
+#### Latency Comparison
+
+| Dataset | Samples (train/test) | Features | Classes | MLX | PyTorch CPU | PyTorch MPS | Speedup vs CPU |
+|---------|---------------------|----------|---------|-----|-------------|-------------|----------------|
+| Breast Cancer | 284 / 285 | 30 | 2 | **135 ms** | 3,062 ms | 4,121 ms | 22.8x |
+| Iris | 75 / 75 | 4 | 3 | **22 ms** | 636 ms | 863 ms | 29.0x |
+| Wine | 89 / 89 | 13 | 3 | **29 ms** | 808 ms | 977 ms | 28.1x |
+| Digits | 898 / 899 | 64 | 10 | **838 ms** | 10,755 ms | 10,077 ms | 12.8x |
+| Synthetic-5class | 1000 / 1000 | 50 | 5 | **571 ms** | 9,147 ms | OOM | 16.0x |
+
+#### Scaling with Dataset Size
+
+| Train samples | Test samples | Features | MLX | PyTorch CPU | Speedup |
+|--------------|-------------|----------|-----|-------------|---------|
+| 50 | 50 | 30 | **30 ms** | 783 ms | 26.0x |
+| 100 | 100 | 30 | **60 ms** | 1,207 ms | 20.1x |
+| 200 | 200 | 30 | **71 ms** | 1,872 ms | 26.3x |
+| 284 | 284 | 30 | **101 ms** | 2,605 ms | 25.7x |
+| 500 | 500 | 100 | **438 ms** | 7,581 ms | 17.3x |
+| 1000 | 1000 | 100 | **1.9 s** | 14,318 ms | 7.5x |
+
+#### Accuracy & Agreement
+
+| Dataset | Classes | MLX Accuracy | PyTorch Accuracy | Prediction Agreement |
+|---------|---------|-------------|------------------|---------------------|
+| Breast Cancer | 2 | 96.8% | 97.2% | 98.2% |
+| Iris | 3 | 97.3% | 94.7% | 97.3% |
+| Wine | 3 | 97.8% | 96.6% | 98.9% |
+| Digits | 10 | 98.9% | 98.9% | 98.9% |
+| Synthetic-5class | 5 | 86.6% | 86.9% | 93.0% |
+
+> **Note**: The official `tabpfn` package uses 8-estimator ensembling by default. MLX performs a single forward pass (equivalent to `n_estimators=1`).
+> When comparing single-estimator to single-estimator, prediction agreement is 98.9% with median probability difference < 0.0001.
+> The ~1-7% disagreements occur on borderline samples near decision boundaries.
+
+See [docs/benchmarks.md](https://github.com/dgallitelli/tabpfn-v3-mlx/blob/main/docs/benchmarks.md) for full methodology.
 
 ## Installation
 

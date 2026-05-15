@@ -1,0 +1,214 @@
+{
+  "Digits": {
+    "mlx": {
+      "backend": "MLX",
+      "accuracy": 0.9888765294771968,
+      "log_loss": 0.05278215680617159,
+      "latency_median_ms": 838.1469169980846,
+      "latency_mean_ms": 843.8900836626999,
+      "latency_min_ms": 829.4027499941876,
+      "latency_std_ms": 14.74381162713171,
+      "latencies": [
+        0.8294027499941876,
+        0.8641205839958275,
+        0.8381469169980846
+      ]
+    },
+    "pytorch_cpu": {
+      "backend": "PyTorch (CPU)",
+      "accuracy": 0.9888765294771968,
+      "log_loss": 0.04761533462173536,
+      "latency_median_ms": 10755.053500004578,
+      "latency_mean_ms": 11053.058403000856,
+      "latency_min_ms": 10420.646416998352,
+      "latency_std_ms": 671.9194965628016,
+      "latencies": [
+        11.983475291999639,
+        10.420646416998352,
+        10.755053500004578
+      ]
+    },
+    "pytorch_mps": {
+      "backend": "PyTorch (MPS)",
+      "accuracy": 0.9888765294771968,
+      "log_loss": 0.04759786209072236,
+      "latency_median_ms": 10076.653292009723,
+      "latency_mean_ms": 10036.856958671706,
+      "latency_min_ms": 9848.21979199478,
+      "latency_std_ms": 140.61925243729368,
+      "latencies": [
+        9.84821979199478,
+        10.076653292009723,
+        10.185697792010615
+      ]
+    },
+    "agreement_mlx_cpu": {
+      "prediction_agreement": 0.9888765294771968,
+      "max_prob_diff": 0.6887498497962952,
+      "mean_prob_diff": 0.002838302403688431
+    },
+    "speedup_vs_cpu": 12.831943042306932,
+    "speedup_vs_mps": 12.022538158465542,
+    "_meta": {
+      "n_train": 898,
+      "n_test": 899,
+      "n_features": 64,
+      "n_classes": 10,
+      "description": "Handwritten digits (64 pixel features, 10 classes)"
+    }
+  },
+  "Synthetic-5class": {
+    "mlx": {
+      "backend": "MLX",
+      "accuracy": 0.866,
+      "log_loss": 0.38555102718885004,
+      "latency_median_ms": 571.0177080036374,
+      "latency_mean_ms": 583.4435693347283,
+      "latency_min_ms": 561.8600000016158,
+      "latency_std_ms": 24.33717231643833,
+      "latencies": [
+        0.6174529999989318,
+        0.5710177080036374,
+        0.5618600000016158
+      ]
+    },
+    "pytorch_cpu": {
+      "backend": "PyTorch (CPU)",
+      "accuracy": 0.869,
+      "log_loss": 0.3826749037344286,
+      "latency_median_ms": 9147.052375003113,
+      "latency_mean_ms": 9395.224888668357,
+      "latency_min_ms": 8992.166708005243,
+      "latency_std_ms": 464.8106821684784,
+      "latencies": [
+        9.147052375003113,
+        8.992166708005243,
+        10.046455582996714
+      ]
+    },
+    "agreement_mlx_cpu": {
+      "prediction_agreement": 0.93,
+      "max_prob_diff": 0.6184951066970825,
+      "mean_prob_diff": 0.03454138711094856
+    },
+    "speedup_vs_cpu": 16.018859392263973,
+    "_meta": {
+      "n_train": 1000,
+      "n_test": 1000,
+      "n_features": 50,
+      "n_classes": 5,
+      "description": "Synthetic (50 features, 5 classes, 30 informative)"
+    }
+  },
+  "Synthetic-5class-large": {
+    "mlx": {
+      "backend": "MLX",
+      "accuracy": 0.928,
+      "log_loss": 0.2616908522775744,
+      "latency_median_ms": 3899.9443750071805,
+      "latency_mean_ms": 4052.4395003352156,
+      "latency_min_ms": 3818.9070420048665,
+      "latency_std_ms": 274.9602805787052,
+      "latencies": [
+        4.438467083993601,
+        3.8999443750071805,
+        3.8189070420048665
+      ]
+    },
+    "_meta": {
+      "n_train": 2500,
+      "n_test": 2500,
+      "n_features": 50,
+      "n_classes": 5,
+      "description": "Synthetic large (50 features, 5 classes, 2500 train)"
+    }
+  },
+  "Synthetic-binary-10k": {
+    "mlx": {
+      "backend": "MLX",
+      "accuracy": 0.9804,
+      "log_loss": 0.07949613229496626,
+      "latency_median_ms": 23245.584207994398,
+      "latency_mean_ms": 22910.750666662352,
+      "latency_min_ms": 21780.183791997842,
+      "latency_std_ms": 821.2767491871078,
+      "latencies": [
+        21.780183791997842,
+        23.706483999994816,
+        23.245584207994398
+      ]
+    },
+    "_meta": {
+      "n_train": 5000,
+      "n_test": 5000,
+      "n_features": 100,
+      "n_classes": 2,
+      "description": "Synthetic binary large (100 features, 5000 train)"
+    }
+  },
+  "CalHousing-4class": {
+    "mlx": {
+      "backend": "MLX",
+      "accuracy": 0.7907945736434109,
+      "log_loss": 0.5072110640659563,
+      "latency_median_ms": 105623.36387499818,
+      "latency_mean_ms": 109553.86595833504,
+      "latency_min_ms": 103617.51450000156,
+      "latency_std_ms": 7024.811126209387,
+      "latencies": [
+        105.62336387499818,
+        119.42071950000536,
+        103.61751450000156
+      ]
+    },
+    "_meta": {
+      "n_train": 10320,
+      "n_test": 10320,
+      "n_features": 8,
+      "n_classes": 4,
+      "description": "California Housing binned into quartiles (8 features, 4 classes)"
+    }
+  },
+  "scaling_stress": [
+    {
+      "n_train": 500,
+      "n_test": 500,
+      "n_features": 100,
+      "mlx_median_ms": 438.42508298985194,
+      "cpu_median_ms": 7580.8313750021625,
+      "speedup": 17.291053064994536
+    },
+    {
+      "n_train": 1000,
+      "n_test": 1000,
+      "n_features": 100,
+      "mlx_median_ms": 1907.3382089991355,
+      "cpu_median_ms": 14318.152416992234,
+      "speedup": 7.506876520082717
+    },
+    {
+      "n_train": 2000,
+      "n_test": 2000,
+      "n_features": 100,
+      "mlx_median_ms": 81579.82566600549,
+      "cpu_median_ms": null,
+      "speedup": null
+    },
+    {
+      "n_train": 3000,
+      "n_test": 3000,
+      "n_features": 100,
+      "mlx_median_ms": 19784.922249993542,
+      "cpu_median_ms": null,
+      "speedup": null
+    },
+    {
+      "n_train": 5000,
+      "n_test": 5000,
+      "n_features": 100,
+      "mlx_median_ms": 11963.879292001366,
+      "cpu_median_ms": null,
+      "speedup": null
+    }
+  ]
+}

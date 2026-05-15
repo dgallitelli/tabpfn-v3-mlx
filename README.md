@@ -58,6 +58,21 @@ The full v3 pipeline (2,395 lines in PyTorch) ported to MLX:
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
+## Performance
+
+Benchmarked on Apple M4 (16 GB), MLX 0.31.2, PyTorch 2.12.0. Median of 10 runs.
+
+| Dataset | MLX | PyTorch CPU | PyTorch MPS | Speedup vs CPU |
+|---------|-----|-------------|-------------|----------------|
+| Breast Cancer (284 train, 30 features) | **135 ms** | 3,062 ms | 4,121 ms | 22.8x |
+| Iris (75 train, 4 features) | **22 ms** | 636 ms | 863 ms | 29.0x |
+| Wine (89 train, 13 features) | **29 ms** | 808 ms | 977 ms | 28.1x |
+
+Prediction agreement with official PyTorch: 98–99% (median probability diff < 0.0001).
+Disagreements occur only on borderline samples at decision boundaries.
+
+See the [HuggingFace model card](https://huggingface.co/dgallitelli/tabpfn-v3-mlx) for full scaling analysis.
+
 ## Installation
 
 ```bash
