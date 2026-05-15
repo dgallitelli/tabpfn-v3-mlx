@@ -204,8 +204,6 @@ def load_v3_from_checkpoint(weights_path: str, task_type: str = "multiclass"):
     Returns:
         Loaded TabPFNV3 model ready for inference
     """
-    import numpy as np
-
     from tabpfn_mlx.config import TabPFNV3Config
     from tabpfn_mlx.model import TabPFNV3
 
