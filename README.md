@@ -2,6 +2,8 @@
 
 [![CI](https://github.com/dgallitelli/tabpfn-v3-mlx/actions/workflows/ci.yml/badge.svg)](https://github.com/dgallitelli/tabpfn-v3-mlx/actions/workflows/ci.yml)
 
+![Benchmark Results](docs/benchmark_figure.png)
+
 Native Apple MLX port of [TabPFN v3](https://github.com/PriorLabs/TabPFN) — the full 53M parameter tabular foundation model running natively on Apple Silicon.
 
 TabPFN v3 performs classification and regression via **in-context learning** — given training data and test features, it produces predictions in a single forward pass with no gradient descent.
@@ -77,8 +79,6 @@ Disagreements occur only on borderline samples at decision boundaries.
 |---------|-----------|-----|-----|----------------|
 | Sine wave + noise | 150/45 | **21 ms** | 0.825 | 23.9x |
 | Multi-frequency signal | 700/285 | **135 ms** | 0.959 | — |
-
-![Benchmark Results](docs/benchmark_figure.png)
 
 See the [HuggingFace model card](https://huggingface.co/dgallitelli/tabpfn-v3-mlx) and [docs/benchmarks.md](docs/benchmarks.md) for full scaling analysis.
 

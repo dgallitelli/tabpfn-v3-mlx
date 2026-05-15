@@ -18,6 +18,8 @@ base_model: Prior-Labs/tabpfn_3
 
 # TabPFN v3 MLX
 
+![Benchmark Results](benchmark_figure.png)
+
 Native Apple MLX port of [TabPFN v3](https://github.com/PriorLabs/TabPFN) — the full 53M parameter tabular foundation model running natively on Apple Silicon (M1-M5).
 
 ## Overview
@@ -38,8 +40,6 @@ This is an **inference-only MLX reimplementation** of the TabPFN v3 architecture
 | Median numerical diff | < 0.0001 probability |
 
 ### Benchmark Results
-
-![Benchmark Results](benchmark_figure.png)
 
 Tested on Apple M4 (16 GB unified memory), MLX 0.31.2, PyTorch 2.12.0, macOS 26.3.1.
 
