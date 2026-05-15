@@ -78,6 +78,8 @@ Disagreements occur only on borderline samples at decision boundaries.
 | Sine wave + noise | 150/45 | **21 ms** | 0.825 | 23.9x |
 | Multi-frequency signal | 700/285 | **135 ms** | 0.959 | — |
 
+![Benchmark Results](docs/benchmark_figure.png)
+
 See the [HuggingFace model card](https://huggingface.co/dgallitelli/tabpfn-v3-mlx) and [docs/benchmarks.md](docs/benchmarks.md) for full scaling analysis.
 
 ## Installation

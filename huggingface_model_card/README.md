@@ -39,6 +39,8 @@ This is an **inference-only MLX reimplementation** of the TabPFN v3 architecture
 
 ### Benchmark Results
 
+![Benchmark Results](benchmark_figure.png)
+
 Tested on Apple M4 (16 GB unified memory), MLX 0.31.2, PyTorch 2.12.0, macOS 26.3.1.
 
 #### Latency Comparison
