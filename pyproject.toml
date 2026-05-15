@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "tabpfn-v3-mlx"
-version = "0.1.0"
+version = "0.1.1"
 description = "TabPFN v3 natively on Apple Silicon via MLX"
 readme = "README.md"
 license = {text = "MIT"}
